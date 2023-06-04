@@ -4,9 +4,11 @@ import aiosqlite
 import discord
 from discord.ext import commands
 from discord.ui import Modal, TextInput
+from dotenv import load_dotenv
 
+load_dotenv()
 DB = "shop_orders.db"
-TOKEN = "BOT TOKEN"
+
 
 intents = discord.Intents.default()
 
@@ -36,7 +38,7 @@ async def on_ready():
                 """
             )
             await db.commit()
-    await bot.tree.sync()
+    # await bot.tree.sync()
     print("Logged in as", bot.user)
 
 
@@ -44,7 +46,7 @@ class OrderBtns(discord.ui.View):
     def __init__(self):
         super().__init__()
 
-    @discord.ui.button(label="Complete", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="Complete", style=discord.ButtonStyle.green)  # type: ignore
     async def completed_callback(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -66,7 +68,7 @@ class OrderBtns(discord.ui.View):
             content=interaction.message.content.replace("added", "**completed**"),
         )
 
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger)  # type: ignore
     async def canceled_callback(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -88,22 +90,28 @@ class OrderBtns(discord.ui.View):
             content=interaction.message.content.replace("added", "**canceled**"),
         )
 
-    @discord.ui.button(label="Find Open Orders", style=discord.ButtonStyle.blurple)
+    @discord.ui.button(label="Find Open Orders", style=discord.ButtonStyle.blurple)  # type: ignore
     async def lookuporders_callback(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
+        user = await interaction.guild.fetch_member(
+            int(interaction.message.content.split("\n")[2].split("@")[1].split(">")[0])
+        )
         orders_embed = discord.Embed(
-            title=f"{interaction.user.display_name}'s Open Orders",
+            title=f"{user.display_name}'s Open Orders",
             color=discord.Color.random(),
         )
-        orders_embed.set_thumbnail(url=interaction.user.avatar.url)
         async with aiosqlite.connect(DB) as db:
             async with db.cursor() as cur:
                 open_orders = await cur.execute(
-                    f"SELECT id,order_items,price FROM shop_orders WHERE user_id={interaction.user.id} AND guild_id={interaction.guild.id} AND completed=0 AND canceled=0;"
+                    f"SELECT id,order_items,price FROM shop_orders WHERE user_id={user.id} AND guild_id={interaction.guild.id} AND completed=0 AND canceled=0;"
                 )
                 open_orders = await open_orders.fetchall()
         orders_embed.set_footer(text=f"Total open orders: {len(open_orders)}")
+        try:
+            orders_embed.set_thumbnail(url=user.avatar.url)
+        except:
+            pass
         if len(open_orders) > 25:
             open_orders = open_orders[:25]
         for order in open_orders:
@@ -179,7 +187,10 @@ async def lookup_orders(interaction: discord.Interaction, user: discord.Member):
     orders_embed = discord.Embed(
         title=f"{user.display_name}'s Open Orders", color=discord.Color.random()
     )
-    orders_embed.set_thumbnail(url=user.avatar.url)
+    try:
+        orders_embed.set_thumbnail(url=user.avatar.url)
+    except:
+        pass
     async with aiosqlite.connect(DB) as db:
         async with db.cursor() as cur:
             open_orders = await cur.execute(
@@ -198,4 +209,4 @@ async def lookup_orders(interaction: discord.Interaction, user: discord.Member):
     await interaction.response.send_message(embed=orders_embed, ephemeral=True)
 
 
-bot.run(TOKEN)
+bot.run(os.environ["TOKEN"])
