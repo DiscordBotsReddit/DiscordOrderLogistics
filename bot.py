@@ -162,7 +162,7 @@ class OrderForm(Modal, title="New Order"):
             async with aiosqlite.connect(DB) as db:
                 async with db.cursor() as cur:
                     order = await cur.execute(
-                        f"INSERT INTO shop_orders(user_id,guild_id,order_items,price) VALUES({int(self.user_id.value)}, {interaction.guild.id}, '{self.order_items.value}', {round(float(self.price.value), 2)});"
+                        f"INSERT INTO shop_orders(user_id,guild_id,order_items,price) VALUES({int(self.user_id.value)}, {interaction.guild.id}, '{str(self.order_items.value}', {round(float(self.price.value), 2)});"
                     )
                     await db.commit()
             await interaction.followup.send(
