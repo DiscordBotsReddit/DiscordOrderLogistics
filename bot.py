@@ -94,21 +94,22 @@ class OrderBtns(discord.ui.View):
     async def lookuporders_callback(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        order_id = int(interaction.message.content.split("\n")[1].split("`")[1])
-        user_id = int(interaction.message.content.split("\n")[1].split("`")[1])
+        user = await interaction.guild.fetch_member(
+            int(interaction.message.content.split("\n")[2].split("@")[1].split(">")[0])
+        )
         orders_embed = discord.Embed(
-            title=f"{interaction.user.display_name}'s Open Orders",
+            title=f"{user.display_name}'s Open Orders",
             color=discord.Color.random(),
         )
         async with aiosqlite.connect(DB) as db:
             async with db.cursor() as cur:
                 open_orders = await cur.execute(
-                    f"SELECT id,order_items,price FROM shop_orders WHERE user_id={interaction.user.id} AND guild_id={interaction.guild.id} AND completed=0 AND canceled=0;"
+                    f"SELECT id,order_items,price FROM shop_orders WHERE user_id={user.id} AND guild_id={interaction.guild.id} AND completed=0 AND canceled=0;"
                 )
                 open_orders = await open_orders.fetchall()
         orders_embed.set_footer(text=f"Total open orders: {len(open_orders)}")
         try:
-            orders_embed.set_thumbnail(url=interaction.user.avatar.url)
+            orders_embed.set_thumbnail(url=user.avatar.url)
         except:
             pass
         if len(open_orders) > 25:
