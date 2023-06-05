@@ -94,22 +94,21 @@ class OrderBtns(discord.ui.View):
     async def lookuporders_callback(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        user = await interaction.guild.fetch_member(
-            int(interaction.message.content.split("\n")[2].split("@")[1].split(">")[0])
-        )
+        order_id = int(interaction.message.content.split("\n")[1].split("`")[1])
+        user_id = int(interaction.message.content.split("\n")[1].split("`")[1])
         orders_embed = discord.Embed(
-            title=f"{user.display_name}'s Open Orders",
+            title=f"{interaction.user.display_name}'s Open Orders",
             color=discord.Color.random(),
         )
         async with aiosqlite.connect(DB) as db:
             async with db.cursor() as cur:
                 open_orders = await cur.execute(
-                    f"SELECT id,order_items,price FROM shop_orders WHERE user_id={user.id} AND guild_id={interaction.guild.id} AND completed=0 AND canceled=0;"
+                    f"SELECT id,order_items,price FROM shop_orders WHERE user_id={interaction.user.id} AND guild_id={interaction.guild.id} AND completed=0 AND canceled=0;"
                 )
                 open_orders = await open_orders.fetchall()
         orders_embed.set_footer(text=f"Total open orders: {len(open_orders)}")
         try:
-            orders_embed.set_thumbnail(url=user.avatar.url)
+            orders_embed.set_thumbnail(url=interaction.user.avatar.url)
         except:
             pass
         if len(open_orders) > 25:
@@ -162,7 +161,7 @@ class OrderForm(Modal, title="New Order"):
             async with aiosqlite.connect(DB) as db:
                 async with db.cursor() as cur:
                     order = await cur.execute(
-                        f"INSERT INTO shop_orders(user_id,guild_id,order_items,price) VALUES({int(self.user_id.value)}, {interaction.guild.id}, '{str(self.order_items.value}', {round(float(self.price.value), 2)});"
+                        f"INSERT INTO shop_orders(user_id,guild_id,order_items,price) VALUES({int(self.user_id.value)}, {interaction.guild.id}, '{self.order_items.value}', {round(float(self.price.value), 2)});"
                     )
                     await db.commit()
             await interaction.followup.send(
